@@ -306,9 +306,35 @@ function ResearchContent() {
 
         // Handle non-streaming error responses
         const contentType = response.headers.get('Content-Type') ?? ''
-        if (!response.ok || contentType.includes('application/json')) {
-          const data = await response.json()
-          throw new Error(data.error ?? `Request failed (${response.status})`)
+        if (!response.ok) {
+          let errorMsg = `Request failed (${response.status})`
+          if (contentType.includes('application/json')) {
+            try {
+              const data = await response.json()
+              errorMsg = data.error ?? errorMsg
+            } catch (e) {
+              // Ignore parse error, use default message
+            }
+          } else {
+            try {
+              const text = await response.text()
+              if (text && text.trim().length < 200) {
+                errorMsg = text.trim()
+              }
+            } catch (e) {
+              // Ignore text parse error
+            }
+          }
+          throw new Error(errorMsg)
+        }
+
+        if (contentType.includes('application/json')) {
+          try {
+            const data = await response.json()
+            throw new Error(data.error ?? 'Unexpected JSON response')
+          } catch (e) {
+            throw new Error(e instanceof Error ? e.message : 'Invalid JSON response')
+          }
         }
 
         setStatus('streaming')
