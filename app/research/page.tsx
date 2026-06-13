@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect, useState, useRef, Suspense } from 'react'
+import React, { useEffect, useState, useRef, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import Link from 'next/link'
-import { ArrowLeft, AlertCircle, Compass, Loader2, Check, ArrowUp } from 'lucide-react'
+import { ArrowLeft, AlertCircle, Compass, Loader2, Check, ArrowUp, RotateCcw } from 'lucide-react'
 import type { Components } from 'react-markdown'
 import { useLanguage } from '@/components/LanguageContext'
 import { translations } from '@/lib/i18n'
@@ -23,6 +23,8 @@ const getInnerText = (node: any): string => {
 const slugify = (text: string) => {
   return text
     .toLowerCase()
+    // Remove variation selectors first
+    .replace(/[\uFE00-\uFE0F]/g, '')
     // Remove emojis
     .replace(/[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, '')
     // Remove standard English punctuation (keeps letters of any language, numbers, spaces, hyphens)
@@ -84,14 +86,69 @@ const processDataSources = (markdownText: string, lang: string): string => {
 // ─── Markdown component map (Ludora Dark Signal theme) ───────────────────────
 
 const mdComponents: Components = {
-  a: ({ href, children }) => (
-    <a
-      href={href}
-      className="text-primary font-medium hover:underline transition-all"
-    >
-      {children}
-    </a>
-  ),
+  a: ({ href, children }) => {
+    const isAnchor = href && href.startsWith('#')
+    
+    const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+      if (isAnchor) {
+        e.preventDefault()
+        const targetId = href.substring(1)
+        
+        // Try to find the element by the exact ID first
+        let targetElement = document.getElementById(targetId)
+        
+        // If not found, try to find a heading by matching normalized text
+        if (!targetElement) {
+          const headings = document.querySelectorAll('h1, h2, h3, h4, h5, h6')
+          const normalize = (str: string) =>
+            str
+              .toLowerCase()
+              .replace(/[\uFE00-\uFE0F]/g, '') // remove variation selectors
+              .replace(/[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, '') // remove emojis
+              .replace(/[^\p{L}\p{N}]+/gu, '') // keep only letters and numbers
+              .trim()
+
+          try {
+            const decodedTargetId = decodeURIComponent(targetId)
+            const normalizedTarget = normalize(decodedTargetId)
+            
+            for (const heading of Array.from(headings)) {
+              const normalizedHeading = normalize(heading.textContent || '')
+              if (normalizedHeading && (normalizedHeading === normalizedTarget || normalizedHeading.includes(normalizedTarget) || normalizedTarget.includes(normalizedHeading))) {
+                targetElement = heading as HTMLElement
+                break
+              }
+            }
+          } catch (err) {
+            console.error('Failed to decode targetId:', targetId, err)
+          }
+        }
+        
+        if (targetElement) {
+          const elementPosition = targetElement.getBoundingClientRect().top
+          const offsetPosition = elementPosition + window.scrollY - 80 // 80px offset for sticky header
+          
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth'
+          })
+          
+          // Update the URL hash without triggering default jump
+          window.history.pushState(null, '', href)
+        }
+      }
+    }
+
+    return (
+      <a
+        href={href}
+        onClick={handleClick}
+        className="text-primary font-medium hover:underline transition-all"
+      >
+        {children}
+      </a>
+    )
+  },
   h1: ({ children }) => {
     const id = slugify(getInnerText(children))
     return (
@@ -206,11 +263,11 @@ function ResearchContent() {
   const city = searchParams.get('city') ?? ''
   const { language } = useLanguage()
   const t = translations[language]
-
   const [content, setContent] = useState('')
   const [status, setStatus] = useState<'loading' | 'streaming' | 'done' | 'error'>('loading')
   const [errorMsg, setErrorMsg] = useState('')
   const [showScrollTop, setShowScrollTop] = useState(false)
+  const [retryCount, setRetryCount] = useState(0)
   const bottomRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
 
@@ -238,6 +295,7 @@ function ResearchContent() {
     const doResearch = async () => {
       try {
         setContent('')
+        setErrorMsg('')
         setStatus('loading')
         const response = await fetch('/api/research', {
           method: 'POST',
@@ -257,12 +315,18 @@ function ResearchContent() {
 
         const reader = response.body!.getReader()
         const decoder = new TextDecoder()
+        let receivedText = ''
 
         while (true) {
           const { done, value } = await reader.read()
           if (done) break
           const chunk = decoder.decode(value, { stream: true })
-          setContent((prev) => prev + chunk)
+          receivedText += chunk
+          setContent(receivedText)
+        }
+
+        if (!receivedText.trim()) {
+          throw new Error(t.emptyError || 'No content was generated. Please try again.')
         }
 
         setStatus('done')
@@ -275,7 +339,7 @@ function ResearchContent() {
 
     doResearch()
     return () => abort.abort()
-  }, [city, router, language])
+  }, [city, router, language, retryCount, t.emptyError])
 
   // Scroll to bottom while streaming
   useEffect(() => {
@@ -365,19 +429,28 @@ function ResearchContent() {
 
         {/* Error state */}
         {status === 'error' && (
-          <div className="bg-surface border border-error/30 rounded-lg p-6 max-w-lg">
+          <div className="bg-surface border border-error/30 rounded-lg p-6 max-w-lg animate-fade-in">
             <div className="flex items-center gap-3 mb-3">
               <AlertCircle className="text-error shrink-0" size={18} strokeWidth={2} />
               <h2 className="text-[16px] font-semibold text-on-surface">{t.failed}</h2>
             </div>
             <p className="text-[14px] leading-[22px] text-secondary mb-5">{errorMsg}</p>
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 text-primary text-[11px] font-semibold tracking-[0.04em] hover:opacity-80 transition-opacity"
-            >
-              <ArrowLeft size={12} strokeWidth={2.5} />
-              {t.backToSearch}
-            </Link>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setRetryCount((c) => c + 1)}
+                className="bg-primary text-base font-bold text-[12px] tracking-[0.08em] uppercase rounded-sm px-4 py-2 hover:bg-primary/90 transition-all flex items-center gap-1.5 active:scale-95 shadow-md shadow-primary/10"
+              >
+                <RotateCcw size={12} strokeWidth={2.5} />
+                {t.retry}
+              </button>
+              <Link
+                href="/"
+                className="inline-flex items-center gap-1.5 text-secondary hover:text-on-surface text-[12px] font-semibold tracking-[0.04em] transition-colors"
+              >
+                <ArrowLeft size={12} strokeWidth={2.5} />
+                {t.backToSearch}
+              </Link>
+            </div>
           </div>
         )}
 

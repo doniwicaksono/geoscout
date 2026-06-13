@@ -33,6 +33,8 @@ export const translations = {
     howItWorks: "How it works",
     examples: "Examples",
     loading: "Loading…",
+    retry: "Retry",
+    emptyError: "No content was generated. This can happen if the AI model or search grounding fails. Please try again.",
   },
   id: {
     newSearch: "Pencarian baru",
@@ -59,6 +61,8 @@ export const translations = {
     howItWorks: "Cara kerja",
     examples: "Contoh",
     loading: "Memuat…",
+    retry: "Coba lagi",
+    emptyError: "Tidak ada konten yang dihasilkan. Hal ini dapat terjadi jika model AI atau grounding pencarian gagal. Silakan coba lagi.",
   },
   zh: {
     newSearch: "重新搜索",
@@ -85,6 +89,8 @@ export const translations = {
     howItWorks: "运作原理",
     examples: "示例",
     loading: "加载中…",
+    retry: "重试",
+    emptyError: "未生成任何内容。这在 AI 模型或搜索定位失败时可能会发生。请重试。",
   },
   ja: {
     newSearch: "新規検索",
@@ -111,5 +117,7 @@ export const translations = {
     howItWorks: "仕組み",
     examples: "例",
     loading: "読み込み中…",
+    retry: "再試行",
+    emptyError: "コンテンツが生成されませんでした。AIモデルや検索グラウンディングに失敗した場合に発生する可能性があります。もう一度お試しください。",
   }
 };
