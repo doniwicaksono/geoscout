@@ -9,6 +9,7 @@ import { ArrowLeft, AlertCircle, Compass, Loader2, Check, ArrowUp, RotateCcw } f
 import type { Components } from 'react-markdown'
 import { useLanguage } from '@/components/LanguageContext'
 import { translations } from '@/lib/i18n'
+import Footer from '@/components/Footer'
 
 // Helper to extract text content from children elements for slug generation
 const getInnerText = (node: any): string => {
@@ -51,13 +52,13 @@ const processDataSources = (markdownText: string, lang: string): string => {
   let insertedDisclaimer = false;
 
   // Verbose localized disclaimer
-  let disclaimer = "Note: To optimize rendering performance and maintain report readability, only the first 25 primary data sources used in this research session are listed above. Gemini continues to analyze all available reference points to ensure accurate results.";
+  let disclaimer = "Note: To optimize rendering performance and maintain report readability, only the first 25 primary data sources used in this research session are listed above. Gemma 4 continues to analyze all available reference points to ensure accurate results.";
   if (lang === 'id') {
-    disclaimer = "Catatan: Untuk mengoptimalkan kinerja pemuatan halaman dan menjaga keterbacaan laporan, hanya 25 sumber data utama pertama yang digunakan dalam sesi penelitian ini yang dicantumkan di atas. Gemini tetap menganalisis seluruh data referensi yang tersedia untuk memastikan keakuratan hasil.";
+    disclaimer = "Catatan: Untuk mengoptimalkan kinerja pemuatan halaman dan menjaga keterbacaan laporan, hanya 25 sumber data utama pertama yang digunakan dalam sesi penelitian ini yang dicantumkan di atas. Gemma 4 tetap menganalisis seluruh data referensi yang tersedia untuk memastikan keakuratan hasil.";
   } else if (lang === 'zh') {
     disclaimer = "注意：为了性能和效率，最多显示 25 个数据来源。";
   } else if (lang === 'ja') {
-    disclaimer = "注意：ページのレンダリングパフォーマンスを最適化し、レポートの読みやすさを維持するため、この調査セッションで使用された上位25件の主要データソースのみを上記にリストしています。Geminiは、正確な結果を保証するために、利用可能なすべての参照データを分析し続けています。";
+    disclaimer = "注意：ページのレンダリングパフォーマンスを最適化し、レポートの読みやすさを維持するため、この調査セッションで使用された上位25件の主要データソースのみを上記にリストしています。Gemma 4は、正確な結果を保証するために、利用可能なすべての参照データを分析し続けています。";
   }
 
   for (let i = 0; i < lines.length; i++) {
@@ -261,6 +262,7 @@ function ResearchContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const city = searchParams.get('city') ?? ''
+  const currentLocation = searchParams.get('currentLocation') ?? ''
   const { language } = useLanguage()
   const t = translations[language]
   const [content, setContent] = useState('')
@@ -273,14 +275,62 @@ function ResearchContent() {
 
   useEffect(() => {
     const handleScroll = () => {
-      setShowScrollTop(window.scrollY > 300)
+      const headings = document.querySelectorAll('h1, h2, h3, h4, h5, h6')
+      const tocTerms = ['tableofcontents', 'daftarisi', '目录', '目次']
+      const normalize = (str: string) =>
+        str
+          .toLowerCase()
+          .replace(/[\uFE00-\uFE0F]/g, '')
+          .replace(/[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, '')
+          .replace(/[^\p{L}\p{N}]+/gu, '')
+          .trim()
+
+      let tocY = 300
+      for (const heading of Array.from(headings)) {
+        const normText = normalize(heading.textContent || '')
+        if (tocTerms.some(term => normText.includes(term) || term.includes(normText))) {
+          const rect = heading.getBoundingClientRect()
+          tocY = rect.top + window.scrollY - 90
+          break
+        }
+      }
+
+      setShowScrollTop(window.scrollY > tocY)
     }
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+  const scrollToTableOfContents = () => {
+    const headings = document.querySelectorAll('h1, h2, h3, h4, h5, h6')
+    let tocElement: HTMLElement | null = null
+    const tocTerms = ['tableofcontents', 'daftarisi', '目录', '目次']
+    const normalize = (str: string) =>
+      str
+        .toLowerCase()
+        .replace(/[\uFE00-\uFE0F]/g, '')
+        .replace(/[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, '')
+        .replace(/[^\p{L}\p{N}]+/gu, '')
+        .trim()
+
+    for (const heading of Array.from(headings)) {
+      const normText = normalize(heading.textContent || '')
+      if (tocTerms.some(term => normText.includes(term) || term.includes(normText))) {
+        tocElement = heading as HTMLElement
+        break
+      }
+    }
+
+    if (tocElement) {
+      const elementPosition = tocElement.getBoundingClientRect().top
+      const offsetPosition = elementPosition + window.scrollY - 80
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      })
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
   }
 
   useEffect(() => {
@@ -300,7 +350,7 @@ function ResearchContent() {
         const response = await fetch('/api/research', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ city, lang: language }),
+          body: JSON.stringify({ city, lang: language, currentLocation }),
           signal: abort.signal,
         })
 
@@ -365,7 +415,7 @@ function ResearchContent() {
 
     doResearch()
     return () => abort.abort()
-  }, [city, router, language, retryCount, t.emptyError])
+  }, [city, currentLocation, router, language, retryCount, t.emptyError])
 
   // Scroll to bottom while streaming
   useEffect(() => {
@@ -375,51 +425,53 @@ function ResearchContent() {
   }, [content, status])
 
   return (
-    <div className="min-h-screen bg-base">
+    <div className="min-h-screen bg-base flex flex-col">
       {/* Sticky top bar */}
       <div className="sticky top-0 z-40 border-b border-white/[0.07] bg-base/90 backdrop-blur-sm">
         <div className="max-w-3xl mx-auto px-6 h-14 flex items-center justify-between gap-4">
+          {/* Logo/Branding (Leftmost & clickable) */}
           <Link
             href="/"
-            className="flex items-center gap-1.5 text-secondary hover:text-on-surface transition-colors text-[11px] font-semibold tracking-[0.04em] shrink-0"
+            className="flex items-center gap-2.5 group shrink-0"
           >
-            <ArrowLeft size={12} strokeWidth={2.5} />
-            {t.newSearch}
-          </Link>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <Compass size={13} className="text-primary" strokeWidth={2.5} />
-            <span className="text-[12.8px] font-bold tracking-[0.08em] uppercase text-on-surface">
+            <Compass
+              className="text-primary group-hover:rotate-12 transition-transform duration-300"
+              size={15}
+              strokeWidth={2.5}
+            />
+            <span className="text-[12.8px] font-bold tracking-[0.08em] uppercase text-on-surface group-hover:text-primary transition-colors">
               GeoScout
             </span>
-          </div>
+          </Link>
 
-          {/* Status indicator */}
-          <div className="flex items-center gap-2 shrink-0">
-            {status === 'loading' && (
-              <span className="flex items-center gap-1.5 text-secondary text-[11px] font-semibold tracking-[0.04em]">
-                <Loader2 size={12} className="animate-spin text-secondary shrink-0" />
-                {t.preparing}
-              </span>
-            )}
-            {status === 'streaming' && (
-              <span className="flex items-center gap-1.5 text-primary text-[11px] font-semibold tracking-[0.04em]">
-                <Loader2 size={12} className="animate-spin text-primary shrink-0" />
-                {t.researching}
-              </span>
-            )}
-            {status === 'done' && (
-              <span className="flex items-center gap-1.5 text-emerald-400 text-[11px] font-semibold tracking-[0.04em]">
-                <Check size={12} className="text-emerald-400 shrink-0" />
-                {t.done}
-              </span>
-            )}
-          </div>
+          {/* Status indicator (Rightmost) */}
+          {status !== 'error' && (
+            <div className="flex items-center gap-2 shrink-0">
+              {status === 'loading' && (
+                <span className="flex items-center gap-1.5 text-secondary text-[11px] font-semibold tracking-[0.04em]">
+                  <Loader2 size={12} className="animate-spin text-secondary shrink-0" />
+                  {t.preparing}
+                </span>
+              )}
+              {status === 'streaming' && (
+                <span className="flex items-center gap-1.5 text-primary text-[11px] font-semibold tracking-[0.04em]">
+                  <Loader2 size={12} className="animate-spin text-primary shrink-0" />
+                  {t.researching}
+                </span>
+              )}
+              {status === 'done' && (
+                <span className="flex items-center gap-1.5 text-emerald-400 text-[11px] font-semibold tracking-[0.04em]">
+                  <Check size={12} className="text-emerald-400 shrink-0" />
+                  {t.done}
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Content area */}
-      <main className="max-w-3xl mx-auto px-6 py-12">
+      <main className="max-w-3xl mx-auto px-6 py-12 flex-grow">
         {/* City heading */}
         <div className="mb-8">
           <p className="text-[12.8px] font-semibold tracking-[0.08em] uppercase text-secondary mb-2">
@@ -461,21 +513,14 @@ function ResearchContent() {
               <h2 className="text-[16px] font-semibold text-on-surface">{t.failed}</h2>
             </div>
             <p className="text-[14px] leading-[22px] text-secondary mb-5">{errorMsg}</p>
-            <div className="flex items-center gap-4">
+            <div className="mt-5">
               <button
                 onClick={() => setRetryCount((c) => c + 1)}
-                className="bg-primary text-base font-bold text-[12px] tracking-[0.08em] uppercase rounded-sm px-4 py-2 hover:bg-primary/90 transition-all flex items-center gap-1.5 active:scale-95 shadow-md shadow-primary/10"
+                className="w-full bg-primary text-base font-bold text-[13px] tracking-[0.08em] uppercase rounded-sm py-3 hover:bg-primary/90 transition-all flex items-center justify-center gap-2.5 active:scale-95 shadow-md shadow-primary/10"
               >
-                <RotateCcw size={12} strokeWidth={2.5} />
+                <RotateCcw size={24} strokeWidth={2.5} />
                 {t.retry}
               </button>
-              <Link
-                href="/"
-                className="inline-flex items-center gap-1.5 text-secondary hover:text-on-surface text-[12px] font-semibold tracking-[0.04em] transition-colors"
-              >
-                <ArrowLeft size={12} strokeWidth={2.5} />
-                {t.backToSearch}
-              </Link>
             </div>
           </div>
         )}
@@ -499,12 +544,14 @@ function ResearchContent() {
         <div ref={bottomRef} className="h-24" />
       </main>
 
-      {/* Scroll to top button */}
+      <Footer />
+
+      {/* Scroll to table of contents button */}
       {showScrollTop && (
         <button
-          onClick={scrollToTop}
+          onClick={scrollToTableOfContents}
           className="fixed bottom-6 right-6 z-50 p-3 rounded-full bg-surface border border-white/[0.07] text-primary hover:text-on-surface hover:bg-surface/80 hover:border-primary/30 active:scale-95 transition-all shadow-lg shadow-black/50"
-          aria-label="Scroll to top"
+          aria-label="Scroll to Table of Contents"
         >
           <ArrowUp size={18} strokeWidth={2.5} />
         </button>

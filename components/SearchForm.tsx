@@ -27,7 +27,14 @@ export default function SearchForm({
     e.preventDefault();
     const trimmed = city.trim();
     if (trimmed) {
-      router.push(`/research?city=${encodeURIComponent(trimmed)}`);
+      let url = `/research?city=${encodeURIComponent(trimmed)}`;
+      if (typeof window !== "undefined") {
+        const savedLoc = localStorage.getItem("geoscout_user_city");
+        if (savedLoc) {
+          url += `&currentLocation=${encodeURIComponent(savedLoc)}`;
+        }
+      }
+      router.push(url);
     }
   };
 
@@ -64,9 +71,20 @@ export default function SearchForm({
 /** Clickable city chip — navigates to the research page. */
 export function CityChip({ city }: { city: string }) {
   const router = useRouter();
+  const handleChipClick = () => {
+    let url = `/research?city=${encodeURIComponent(city)}`;
+    if (typeof window !== "undefined") {
+      const savedLoc = localStorage.getItem("geoscout_user_city");
+      if (savedLoc) {
+        url += `&currentLocation=${encodeURIComponent(savedLoc)}`;
+      }
+    }
+    router.push(url);
+  };
+
   return (
     <button
-      onClick={() => router.push(`/research?city=${encodeURIComponent(city)}`)}
+      onClick={handleChipClick}
       className="bg-surface text-primary text-[11px] font-semibold tracking-[0.06em] rounded-full px-3 py-1.5 border border-white/[0.07] hover:border-primary/30 hover:bg-primary/5 transition-all"
     >
       {city}

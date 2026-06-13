@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from "react";
 import SearchForm, { CityChip } from "./SearchForm";
 import { EXAMPLE_CITIES } from "@/lib/cities";
 import { BarChart3, Globe, Zap } from "lucide-react";
@@ -9,6 +10,42 @@ import { translations } from "@/lib/i18n";
 export default function Hero() {
   const { language } = useLanguage();
   const t = translations[language];
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const savedCity = localStorage.getItem("geoscout_user_city");
+    const locationDenied = localStorage.getItem("geoscout_location_denied");
+
+    if (!savedCity && !locationDenied && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          try {
+            const res = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?lat=${position.coords.latitude}&lon=${position.coords.longitude}&format=json&accept-language=${language}`
+            );
+            const data = await res.json();
+            const detectedCity =
+              data.address?.city ||
+              data.address?.town ||
+              data.address?.village ||
+              data.address?.state ||
+              data.address?.country;
+            if (detectedCity) {
+              localStorage.setItem("geoscout_user_city", detectedCity);
+            }
+          } catch (err) {
+            console.error("Failed to reverse geocode user location:", err);
+          }
+        },
+        (err) => {
+          console.warn("Geolocation permission denied or failed:", err);
+          localStorage.setItem("geoscout_location_denied", "true");
+        },
+        { timeout: 10000 }
+      );
+    }
+  }, [language]);
 
   const FEATURES = [
     {

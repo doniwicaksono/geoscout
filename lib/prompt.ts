@@ -219,10 +219,7 @@ Use this EXACT markdown template. Fill every section — do not skip any:
 - Scores must reflect context: an expensive city that delivers high quality is different from one that doesn't
 - The report must support a real decision, not just inform abstractly`
 
-/**
- * Build the user message for the research request with smart localization and language/context mapping.
- */
-export function buildResearchPrompt(city: string, lang: string): string {
+export function buildResearchPrompt(city: string, lang: string, currentLocation?: string): string {
   let langName = "English";
   let userHomeCountry = "International";
   if (lang === "id") {
@@ -236,9 +233,22 @@ export function buildResearchPrompt(city: string, lang: string): string {
     userHomeCountry = "Japan";
   }
 
-  return `Research the city of "${city}" for relocation purposes.
+  const basePrompt = `Research the city of "${city}" for relocation purposes.
 The report MUST be written entirely in ${langName}.
-The user's language background is ${langName} and their home country/region is ${userHomeCountry}.
+The user's language background is ${langName} and their home country/region is ${userHomeCountry}.`;
+
+  const comparisonPrompt = currentLocation
+    ? `\n\nADDITIONAL COMPARISON CONTEXT:
+The user is currently living in "${currentLocation}".
+You MUST integrate direct comparative analysis between "${city}" (target destination) and "${currentLocation}" (current location) across all relevant domains in the report:
+- Cost of Living: Compare estimated expenses, rent, utilities, food, transport, etc., and mention the percentage difference or relative affordability where possible.
+- Safety & Crime: Compare safety indexes, crime levels, and public safety feelings.
+- Public Services & Accessibility: Highlight main differences in transit networks, health systems, and internet infrastructure.
+- Culture & Social Life: Note contrast or adjustment requirements between the lifestyle in "${currentLocation}" and "${city}".
+- Economy & Opportunities: Note the relative strength of job opportunities or wages between these two cities.`
+    : "";
+
+  const rulesPrompt = `
 
 Prioritize these localization and wage context rules:
 1. Determine if the target city "${city}" is located in the user's home country (${userHomeCountry}).
@@ -251,4 +261,6 @@ Prioritize these localization and wage context rules:
    - Evaluate affordability, visa requirements, language barriers, and transition ease specifically from the perspective of someone moving from ${userHomeCountry}.
 4. Follow the exact markdown template format (translated to ${langName} but keeping emojis and the structural headings intact). For the Table of Contents section, create anchor links using the translated header name, converted to lowercase, with spaces replaced by hyphens, and emojis removed. For example: [Ringkasan Eksekutif](#ringkasan-eksekutif) or [执行摘要](#执行摘要).
 5. Today's date is ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}.`;
+
+  return basePrompt + comparisonPrompt + rulesPrompt;
 }
