@@ -2,7 +2,6 @@ import OpenAI from "openai";
 import { RESEARCH_SYSTEM_PROMPT, buildResearchPrompt } from "@/lib/prompt";
 import { NextRequest } from "next/server";
 
-export const maxDuration = 60; // 60 seconds timeout limit for research search grounding
 export const runtime = "edge";
 
 const OPENROUTER_MODEL = "google/gemma-4-26b-a4b-it:free";
