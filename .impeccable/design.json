@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-25T12:00:00Z",
+  "title": "Design System: Geoscout",
+  "extensions": {
+    "colorMeta": {
+      "primary": { "role": "primary", "displayName": "Vivid Signal Amber", "canonical": "oklch(82.35% 0.176 81.33)", "tonalRamp": ["#fbe9be", "#f8d57d", "#f2c12e", "#bd9215", "#876508"] },
+      "secondary": { "role": "secondary", "displayName": "Muted Charcoal Gray", "canonical": "oklch(48% 0 0)", "tonalRamp": ["#e0e0e0", "#a3a3a3", "#666666", "#424242", "#212121"] },
+      "tertiary": { "role": "tertiary", "displayName": "Slate Border", "canonical": "oklch(33% 0.02 250)", "tonalRamp": ["#9ca3af", "#6b7280", "#374151", "#1f2937", "#111827"] },
+      "base": { "role": "neutral", "displayName": "Void Black", "canonical": "oklch(14% 0 0)", "tonalRamp": ["#efefef", "#2a2a2a", "#111111", "#080808", "#000000"] },
+      "surface": { "role": "neutral", "displayName": "Chamber Gray", "canonical": "oklch(20% 0 0)", "tonalRamp": ["#f5f5f5", "#757575", "#212121", "#111111", "#0a0a0a"] },
+      "on-surface": { "role": "neutral", "displayName": "Light Silver", "canonical": "oklch(94% 0 0)", "tonalRamp": ["#ffffff", "#f5f5f5", "#efefef", "#cccccc", "#999999"] },
+      "error": { "role": "error", "displayName": "Error Red", "canonical": "oklch(62% 0.22 29)", "tonalRamp": ["#fee2e2", "#fca5a5", "#ef4444", "#b91c1c", "#7f1d1d"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display Hero", "purpose": "Hero headlines only." },
+      "headline": { "displayName": "Report Heading (H1)", "purpose": "Primary section titles in markdown." },
+      "title": { "displayName": "Sub-heading (H2)", "purpose": "Domain score cards and minor headers." },
+      "body": { "displayName": "Body Prose", "purpose": "Report narrative, lists, and tables." },
+      "label": { "displayName": "Metadata Label", "purpose": "Table headers, search chips, and badges." }
+    },
+    "shadows": [],
+    "motion": [
+      { "name": "ease-out", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Exponential ease-out for hover transitions." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Primary action button, used for form submissions and critical flows.",
+      "html": "<button class=\"ds-btn-primary\">SCOUT</button>",
+      "css": ".ds-btn-primary { background: #f2c12e; color: #080808; padding: 10px 28px; font-size: 12.8px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; border: none; border-radius: 2px; height: 43px; cursor: pointer; transition: background-color 0.15s ease-out; } .ds-btn-primary:hover { background-color: #d9ab23; } .ds-btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input-text",
+      "description": "Form input field for search and geolocation input.",
+      "html": "<input type=\"text\" class=\"ds-input-text\" placeholder=\"Enter a city name…\" />",
+      "css": ".ds-input-text { background: #111111; color: #efefef; border: 1px solid rgba(255, 255, 255, 0.07); border-radius: 2px; padding: 12px 16px; font-size: 16.8px; line-height: 28.6px; height: 43px; width: 100%; box-sizing: border-box; transition: border-color 0.15s ease-out, box-shadow 0.15s ease-out; } .ds-input-text::placeholder { color: #666666; } .ds-input-text:focus { outline: none; border-color: rgba(242, 193, 46, 0.4); box-shadow: 0 0 0 1px rgba(242, 193, 46, 0.2); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Cartographic Journal",
+    "overview": "Geoscout is designed as a structured, technical journal for geographical analysis. It rejects the overly friendly, soft, pastel visual language common in modern consumer SaaS in favor of a dark, low-distraction environment optimized for intense data readability and expert density.",
+    "keyCharacteristics": [
+      "Void & Amber Palette: High-contrast interface relying on an pure black background, deep gray containers, and a single vivid signal amber accent color.",
+      "Flat Layouts: Zero shadows or decorative gradients; physical layers are distinguished purely through flat background colors and fine border lines.",
+      "Typographic Order: Strong font-size hierarchy and generous line height ensuring long-form report prose remains highly readable."
+    ],
+    "rules": [
+      { "name": "The 10% Accent Rule", "body": "The primary Signal Amber must cover ≤10% of any page surface. It must be reserved for directional cues, interactive feedback, and status indicators.", "section": "colors" },
+      { "name": "The Flat Boundary Rule", "body": "No box-shadows or drop-shadows may be used under any card, dialog, or input. Boundary lines are established exclusively via 1px solid lines using white/[0.07].", "section": "elevation" }
+    ],
+    "dos": [
+      "Do wrap all report text in a max-width container of 75ch to ensure lines are easy to scan.",
+      "Do use uppercase and wide tracking (0.06em or more) on small label elements to make them look structured and intentional.",
+      "Do maintain a strict 4.5:1 text-to-background contrast ratio for all secondary and tertiary body text."
+    ],
+    "donts": [
+      "Don't use colored side-stripes or vertical accent lines on cards or report callout boxes.",
+      "Don't add linear or radial gradients to text headings.",
+      "Don't introduce box-shadows or blur-filters to cards or buttons.",
+      "Don't use generic rounded buttons (rounded-lg or rounded-full) for primary actions; keep button corners sharp."
+    ]
+  }
+}
